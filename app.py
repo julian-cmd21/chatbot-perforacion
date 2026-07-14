@@ -1,6 +1,5 @@
 import streamlit as st
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
+from huggingface_hub import InferenceClient
 
 st.set_page_config(
     page_title="Chatbot de Perforación Petrolera",
@@ -11,21 +10,10 @@ st.set_page_config(
 st.title("🛢️ Chatbot de Perforación Petrolera")
 st.markdown("Asistente especializado en ingeniería de perforación. Consulta parámetros de pozos, NPT y datos de correlación.")
 
-MODEL_ID = "Julian992992/llama-3-8b-chat-Perforation-Dataset"
 HF_TOKEN = st.secrets["HF_TOKEN"]
+MODEL_ID = "Julian992992/llama-3-8b-chat-Perforation-Dataset"
 
-@st.cache_resource
-def load_model():
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, token=HF_TOKEN)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
-        torch_dtype=torch.float16,
-        device_map="auto",
-        token=HF_TOKEN
-    )
-    return model, tokenizer
-
-model, tokenizer = load_model()
+client = InferenceClient(model=MODEL_ID, token=HF_TOKEN)
 
 SYSTEM_PROMPT = """Eres un asistente experto en ingeniería de perforación petrolera. 
 Responde preguntas técnicas sobre operaciones de perforación, parámetros de pozos, 
@@ -47,20 +35,14 @@ if prompt := st.chat_input("Escribe tu pregunta sobre perforación..."):
     for msg in st.session_state.messages:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    input_text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
-    
     with st.chat_message("assistant"):
         with st.spinner("Pensando..."):
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=300,
-                do_sample=True,
+            response = client.chat_completion(
+                messages=messages,
+                max_tokens=300,
                 temperature=0.7,
-                top_p=0.95
             )
-            response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            response = response.split("assistant")[-1].strip()
-            st.markdown(response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": response})
+            reply = response.choices[0].message.content
+            st.markdown(reply)
+
+    st.session_state.messages.append({"role": "assistant", "content": reply})
