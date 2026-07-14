@@ -11,13 +11,16 @@ st.title("🛢️ Chatbot de Perforación Petrolera")
 st.markdown("Asistente especializado en ingeniería de perforación. Consulta parámetros de pozos, NPT y datos de correlación.")
 
 HF_TOKEN = st.secrets["HF_TOKEN"]
-MODEL_ID = "Julian992992/llama-3-8b-chat-Perforation-Dataset"
 
-client = InferenceClient(model=MODEL_ID, token=HF_TOKEN)
+# Usar el modelo base de Meta con tu system prompt especializado
+client = InferenceClient(
+    model="meta-llama/Meta-Llama-3-8B-Instruct",
+    token=HF_TOKEN
+)
 
-SYSTEM_PROMPT = """Eres un asistente experto en ingeniería de perforación petrolera. 
+SYSTEM_PROMPT = """Eres un asistente experto en ingeniería de perforación petrolera especializado en pozos de la cuenca de Colombia. 
 Responde preguntas técnicas sobre operaciones de perforación, parámetros de pozos, 
-NPT, y datos de pozos de correlación de forma precisa y concisa."""
+NPT, y datos de pozos de correlación de forma precisa y concisa en español."""
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
